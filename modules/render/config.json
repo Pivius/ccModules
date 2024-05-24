@@ -1,0 +1,7 @@
+{
+    "dependencies": [
+        "vector",
+        "angle",
+        "color"
+    ]
+}
