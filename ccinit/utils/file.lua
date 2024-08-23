@@ -1,7 +1,7 @@
 local utils = require(".utils.utils")
-local FileWrapper = {}
+local fileWrapper = {}
 
-function FileWrapper:deletePath(path)
+function fileWrapper:deletePath(path)
     if fs.exists(path) then
         fs.delete(path)
         return true
@@ -10,13 +10,13 @@ function FileWrapper:deletePath(path)
     end
 end
 
-function FileWrapper:createDir(path)
+function fileWrapper:createDir(path)
     if not fs.exists(path) then
         fs.makeDir(path)
     end
 end
 
-function FileWrapper:createFile(path, content)
+function fileWrapper:createFile(path, content)
     if fs.exists(path) then
         return utils.printC("File already exists", colors.red)
     end
@@ -30,24 +30,24 @@ function FileWrapper:createFile(path, content)
     file.close()
 end
 
-function FileWrapper:readFile(path)
+function fileWrapper:readFile(path)
     local file = fs.open(path, "r")
     local content = file.readAll()
     file.close()
     return content
 end
 
-function FileWrapper:editFile(path, content)
+function fileWrapper:editFile(path, content)
     local file = fs.open(path, "w")
     file.write(content)
     file.close()
 end
 
-function FileWrapper:readJSON(path)
+function fileWrapper:readJSON(path)
     return utils.JSONtoTable(self:readFile(path)) or {}
 end
 
-function FileWrapper:editJSON(path, tbl)
+function fileWrapper:editJSON(path, tbl)
     local fileContent = self:readJSON(path)
 
     for key, value in pairs(tbl) do
@@ -59,4 +59,4 @@ function FileWrapper:editJSON(path, tbl)
     return fileContent
 end
 
-return FileWrapper
+return fileWrapper

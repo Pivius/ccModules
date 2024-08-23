@@ -14,49 +14,62 @@ const webServer = new WebSocket.Server({ port: WS_PORT });
 
 webServer.on('connection', connectionHandler);
 
+const authorizedComputers = new Map();
 let fileWatcher = null;
 let connectedClients = 0;
-const authorizedComputers = new Map();
 
 function connectionHandler(ws) {
     console.log('Client connected');
+
     const authorizationTimeout = setTimeout(() => {
         console.log('Authorization timeout. Disconnecting client.');
         ws.send(JSON.stringify({ type: 'auth', status: 'timeout' }));
         ws.close();
     }, 30 * 1000);
 
-    ws.on('message', (message) => {
-        message = JSON.parse(message);
+    ws.on('message', (message) => handleMessage(ws, message, authorizationTimeout));
+    ws.on('close', () => handleClientDisconnect(authorizationTimeout));
+    ws.onerror = (error) => handleClientDisconnect(authorizationTimeout, error);
+}
 
-        if (message.type === 'auth') {
-            if (authorizedComputers.has(message.computerId)) {
-                authorize(ws, message.computerId, authorizationTimeout);
-            } else {
-                authorizeConnection(ws, message.computerId, authorizationTimeout, rl, authorizedComputers);
-            }
+function handleMessage(ws, message, authorizationTimeout) {
+    const parsedMessage = JSON.parse(message);
+
+    if (parsedMessage.type === 'auth') {
+        if (authorizedComputers.has(message.computerId)) {
+            authorize(ws, parsedMessage.computerId, authorizationTimeout);
+        } else {
+            authorizeConnection(ws, parsedMessage.computerId, authorizationTimeout, rl, authorizedComputers);
         }
-    });
+    } else if (parsedMessage.type === 'file_change') {
+        handleFileChangeFromClient(parsedMessage);
+    }
+}
 
-    ws.on('close', () => {
-        console.log('Client disconnected');
-        connectedClients--;
-        clearTimeout(authorizationTimeout);
+function handleClientDisconnect(authorizationTimeout, error = null) {
+    console.log(error ? `Client disconnected due to error: ${error}` : 'Client disconnected');
+    connectedClients--;
+    clearTimeout(authorizationTimeout);
 
-        if (connectedClients === 0) {
-            stopWatchingFiles();
-        }
-    });
+    if (connectedClients === 0) stopWatchingFiles();
+}
 
-    ws.onerror = (error) => {
-        console.log(`WebSocket error: ${error}`);
-        connectedClients--;
-        clearTimeout(authorizationTimeout);
+function handleFileChangeFromClient(message) {
+    const { path: filePath, module: moduleName, content, action } = message;
 
-        if (connectedClients === 0) {
-            stopWatchingFiles();
-        }
-    };
+    const fullPath = path.join(__dirname, filePath);
+
+    if (['add', 'change'].includes(action)) {
+        fs.writeFileSync(fullPath, content, 'utf8');
+    } else if (action === 'unlink') {
+        fs.unlinkSync(fullPath);
+    } else if (action === 'addDir') {
+        fs.mkdirSync(fullPath);
+    } else if (action === 'unlinkDir') {
+        fs.rmdirSync(fullPath);
+    }
+
+    broadcastToClients(fullPath, action);
 }
 
 function broadcastToClients(filePath, action) {

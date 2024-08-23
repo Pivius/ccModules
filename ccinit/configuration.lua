@@ -1,4 +1,4 @@
-local FileWrapper = require("utils.file")
+local fileWrapper = require("utils.file")
 local Config = {}
 Config.__index = Config
 
@@ -12,10 +12,10 @@ function Config:new(args)
     local self = setmetatable(proto, Config)
 
     if not fs.exists(self.path) then
-        FileWrapper:createFile(self.path)
-        FileWrapper:editJSON(self.path, self.init)
+        fileWrapper:createFile(self.path)
+        fileWrapper:editJSON(self.path, self.init)
     else
-        FileWrapper:editJSON(self.path, self.launch)
+        fileWrapper:editJSON(self.path, self.launch)
     end
     
     self:load()
@@ -24,12 +24,12 @@ function Config:new(args)
 end
 
 function Config:load()
-    self.cache = FileWrapper:readJSON(self.path)
+    self.cache = fileWrapper:readJSON(self.path)
     return self.cache
 end
 
 function Config:edit(config)
-    self.cache = FileWrapper:editJSON(self.path, config)
+    self.cache = fileWrapper:editJSON(self.path, config)
 end
 
 function Config:setVariable(args)

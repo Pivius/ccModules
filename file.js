@@ -3,9 +3,10 @@ const { MODULE_PATH } = require('./config');
 
 function getModuleConfig(moduleName) {
     let config = "{}";
+    let configPath = `${MODULE_PATH}/${moduleName}/config.json`;
 
-    if (fs.existsSync(`${MODULE_PATH}/${moduleName}/config.json`)) {
-        config = fs.readFileSync(`${MODULE_PATH}/${moduleName}/config.json`, 'utf8');
+    if (fs.existsSync(configPath)) {
+        config = fs.readFileSync(configPath, 'utf8');
     }
 
     return JSON.parse(config);
